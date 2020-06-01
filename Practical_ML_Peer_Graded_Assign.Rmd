@@ -1,0 +1,61 @@
+---
+title: "Practical Machine Learning Peer Graded Assignment"
+output: html_document
+---
+<br>
+**<font size="5">Summary</font>**
+<br>
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+<br>
+
+**<font size="5">Cross Validation</font>**
+<br>
+Cross-validation will be performed by subsampling our training data set randomly without replacement into 2 subsamples:Training data (70% ) and Test data (30%). Our models will be fitted on the TrainTrainingSet data set, and tested on the TestTrainingSet data. Once the most accurate model is choosen, it will be tested on the original Testing data set.
+<br>
+
+**<font size="5">Loading and Analysis of dataset</font>**
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+library(caTools)
+library(rpart)
+library(caret)
+library(randomForest)
+library(rpart.plot)
+training <- read.csv('pml-training.csv',na.strings=c("NA","#DIV/0!", ""))
+testing <- read.csv('pml-testing.csv',na.strings=c("NA","#DIV/0!", ""))
+summary(training)
+summary(testing)
+any(is.na(training))
+training<-training[,colSums(is.na(training)) == 0]
+any(is.na(testing))
+testing<-testing[,colSums(is.na(testing)) == 0]
+sample <- createDataPartition(y=training$classe, p=0.70, list=FALSE)
+training_set <- training[sample, ] 
+testing_set <- training[-sample, ]
+ggplot(data = training_set,aes(classe)) + geom_histogram(stat = "count")
+```
+<br>
+**<font size="5">Prediction using Random Forest</font>**
+```{r, echo=TRUE}
+model <- randomForest(classe ~. , data=training_set, method="class")
+prediction <- predict(model, testing_set, type = "class")
+confusionMatrix(prediction, testing_set$classe)
+```
+<br>
+**<font size="5">Prediction using Decision Tree</font>**
+```{r, echo=TRUE}
+model1 <- rpart(classe ~ ., data=training_set, method="class")
+prediction1 <- predict(model1, testing_set, type = "class")
+rpart.plot(model1, main="Classification", extra=102, under=TRUE, faclen=0)
+confusionMatrix(prediction1, testing_set$classe)
+```
+<br>
+**<font size="3">Random Forest will be used for prediction as it has a better accuracy</font>**
+<br><br>
+```{r, echo=TRUE}
+levels(testing$cvtd_timestamp)<-levels(training_set$cvtd_timestamp)
+levels(testing$new_window) <- levels(training_set$new_window)
+final.predict <- predict(model, testing, type="class")
+final.predict
+```
